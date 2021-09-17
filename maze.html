@@ -10,13 +10,26 @@
 <body>
     <button onclick="window.location.reload();">Refresh</button> 
     <div>
-        <canvas id="canvas">
-            Your browser doesn't support canvases.
-        </canvas>
         <p class="instructions">
             <span style="color: black; font: bold 20px Arial, sans-serif;">Maze Solver</span>
         </p>
+        <canvas id="canvas">
+            Your browser doesn't support canvases.
+        </canvas>
     </div>
+    <button class="paint-mode-button" onclick="changePaintMode(squareModes.WALL, this);">WALL</button>
+    <br>
+    <br>
+    <button class="paint-mode-button" onclick="changePaintMode(squareModes.EMPTY, this);">EMPTY</button>
+    <br>
+    <br>
+    <button class="paint-mode-button" onclick="changePaintMode(squareModes.START, this);">START POSITION</button>
+    <br>
+    <br>
+    <button class="paint-mode-button" onclick="changePaintMode(squareModes.END, this);">END POSITION</button>
+    <br>
+    <br>
+    <button class="paint-mode-button" onclick="if (startSquare && endSquare) startSolvingMaze(this);">SOLVE IT!</button>
 </body>
 <script src="script.js"></script>
 </html>
