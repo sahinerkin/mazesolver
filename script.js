@@ -1,7 +1,9 @@
 let canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
+const mazeCode = document.getElementById("maze-code");
 
 const paintModeButtons = document.getElementsByClassName("paint-mode-button");
+let paintMode = true;
 let mousedown = false;
 
 let mazeWidth = 20;
@@ -26,15 +28,15 @@ const directions = {
 	UP: 0,
 	RIGHT: 1,
 	DOWN: 2,
-	LEFT: 3,
+	LEFT: 3,    
 };
 
 const squareModes = {
-    WALL: "X",
-    EMPTY: " ",
-    START: "S",
-    END: "E", 
-    TRAVERSE: "T",
+    EMPTY: 0,
+    WALL: 1,
+    START: 2,
+    END: 3, 
+    TRAVERSE: 4,
 };
 
 let currentSquareMode = squareModes.WALL;
@@ -49,6 +51,40 @@ function clickPositionToIndex(posX, posY) {
     indexY = clamp(indexY, 0, mazeHeight-1);
 
     return new Index(indexX, indexY);
+}
+
+function copyMaze() {
+    navigator.clipboard.writeText(mazeCode.value);
+}
+
+function loadMaze() {
+    let atobCode = atob(mazeCode.value);
+
+    for (let i = 0; i < mazeMatrix.length; i++) {
+        for (let j = 0; j < mazeMatrix[i].length; j++) {
+            mazeMatrix[i][j] = parseInt(atobCode[i*mazeHeight + j]);
+            if (mazeMatrix[i][j] == squareModes.START)
+                startSquare = new Index(i, j);
+            else if (mazeMatrix[i][j] == squareModes.END)
+            endSquare = new Index(i, j);
+        }
+    }
+
+    drawMaze();
+}
+
+function updateMazeCode() {
+    let mazeString = "";
+    for (let i = 0; i < mazeMatrix.length; i++) {
+        for (let j = 0; j < mazeMatrix[i].length; j++) {
+            if (mazeMatrix[i][j] == squareModes.TRAVERSE)
+                mazeString += squareModes.EMPTY;
+            else
+                mazeString += mazeMatrix[i][j];
+        }
+    }
+
+    mazeCode.value = btoa(mazeString);
 }
 
 function drawMaze() {
@@ -81,6 +117,9 @@ function drawMaze() {
             ctx.fillRect((squareSize+spaceSize)*i + 1, (squareSize+spaceSize)*j + 1, squareSize, squareSize);
         }
     }
+
+    updateMazeCode();
+
 }
 
 function updateSquare(index) {
@@ -88,13 +127,13 @@ function updateSquare(index) {
     switch (currentSquareMode) {
         case squareModes.START:
             if (startSquare)
-                mazeMatrix[startSquare.i][startSquare.j] = " ";
+                mazeMatrix[startSquare.i][startSquare.j] = squareModes.EMPTY;
             
             startSquare = new Index(index.i, index.j);
             break;
         case squareModes.END:
             if (endSquare)
-                mazeMatrix[endSquare.i][endSquare.j] = " ";
+                mazeMatrix[endSquare.i][endSquare.j] = squareModes.EMPTY;
             
             endSquare = new Index(index.i, index.j);
             break;
@@ -122,7 +161,7 @@ function initializeMaze() {
     for (let i = 0; i < mazeWidth; i++) {
         let mazeMatrixRow = [];
         for (let j = 0; j < mazeHeight; j++) {
-            mazeMatrixRow.push(" ");
+            mazeMatrixRow.push(squareModes.EMPTY);
         }
         mazeMatrix.push(mazeMatrixRow);
     }
@@ -183,7 +222,11 @@ function getAdjacentSquaresAvailability(index) {
     return availability;
 }
 
+let solutionSquares = [];
+
 function startSolvingMaze(button) {
+    paintMode = false;
+
     for (let index = 0; index < paintModeButtons.length; index++)
         paintModeButtons[index].setAttribute("disabled", "");
 
@@ -191,6 +234,19 @@ function startSolvingMaze(button) {
 
     currentSquareMode = squareModes.TRAVERSE;
     recursiveMazeSolver(startSquare);
+
+    for (let j = 0; j < mazeMatrix.length; j++) {
+        for (let i = 0; i < mazeMatrix[j].length; i++) {
+            if (mazeMatrix[i][j] == squareModes.TRAVERSE)
+                mazeMatrix[i][j] = squareModes.EMPTY;
+        }
+    }
+
+    for (let idx = 0; idx < solutionSquares.length; idx++) {
+        mazeMatrix[solutionSquares[idx].i][solutionSquares[idx].j] = squareModes.TRAVERSE;
+    }
+    mazeMatrix[startSquare.i][startSquare.j] = squareModes.START;
+    drawMaze();
 }
 
 function sleep(milliseconds) {
@@ -203,7 +259,7 @@ var start = new Date().getTime();
 }
 
 function printMatrix(matrix) {
-    for (let j = matrix.length-1; j >= 0; j--) {
+    for (let j = 0; j < matrix.length; j++) {
         let string = "";
         for (let i = 0; i < matrix[j].length; i++) {
             string += matrix[i][j] + " ";
@@ -214,36 +270,34 @@ function printMatrix(matrix) {
 }
 
 function recursiveMazeSolver(index) {
-    // console.log(index.i + ", " + index.j);
-    // console.log(mazeMatrix[index.i][index.j] + "\n");
-    let tempMatrix = mazeMatrix.slice();
 
     if (mazeMatrix[index.i][index.j] == squareModes.END)
         return true;
 
     mazeMatrix[index.i][index.j] = squareModes.TRAVERSE;
-    drawMaze();
+    solutionSquares.push(index);
 
 
     let availability = getAdjacentSquaresAvailability(index);
-    // console.log(availability);
 
     for (let i = 0; i < availability.length; i++) {
         let adjacentSquare = getAdjacentSquareIndexOf(index, i);
         if (availability[i] && recursiveMazeSolver(adjacentSquare)) {
             return true;
         }
-        mazeMatrix = tempMatrix.slice();
-        drawMaze();
     }
 
+    solutionSquares.pop();
     return false;
 }
 
 canvas.addEventListener("mousedown", function(event) {
     mousedown = true;
-    let clickIndex = clickPositionToIndex(event.pageX, event.pageY);  
-    updateSquare(clickIndex);
+    if (paintMode) {
+        let clickIndex = clickPositionToIndex(event.pageX, event.pageY);  
+        updateSquare(clickIndex);
+    }
+
 });
 
 document.addEventListener("mouseup", function() {
@@ -251,10 +305,12 @@ document.addEventListener("mouseup", function() {
 });
 
 canvas.addEventListener("mousemove", function(event) {
-    let clickIndex = clickPositionToIndex(event.pageX, event.pageY);
+    if (paintMode) {
+        let clickIndex = clickPositionToIndex(event.pageX, event.pageY);
 
-    if (mousedown)
-        updateSquare(clickIndex);
+        if (mousedown)
+            updateSquare(clickIndex);
+    } 
 });
 
 

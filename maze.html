@@ -17,7 +17,7 @@
             Your browser doesn't support canvases.
         </canvas>
     </div>
-    <button class="paint-mode-button" onclick="changePaintMode(squareModes.WALL, this);">WALL</button>
+    <button class="paint-mode-button" disabled onclick="changePaintMode(squareModes.WALL, this);">WALL</button>
     <br>
     <br>
     <button class="paint-mode-button" onclick="changePaintMode(squareModes.EMPTY, this);">EMPTY</button>
@@ -30,6 +30,13 @@
     <br>
     <br>
     <button class="paint-mode-button" onclick="if (startSquare && endSquare) startSolvingMaze(this);">SOLVE IT!</button>
+    <br>
+    <br>
+    <p style="margin-bottom: 0;"><strong>Maze Code</strong></p>
+    <textarea rows=5 columns=25 id="maze-code"></textarea>
+    <br>
+    <button id="copy-maze" onclick="copyMaze();">COPY</button>
+    <button id="load-maze" onclick="loadMaze();">LOAD MAZE</button>
 </body>
 <script src="script.js"></script>
 </html>
